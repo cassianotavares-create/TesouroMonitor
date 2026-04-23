@@ -1,5 +1,7 @@
 import requests
-import json
+
+# COLAR API
+API_KEY_PROXY = "99f7237f-e897-4ed3-9058-a086025aa43d"
 
 # Configure aqui seus títulos e valores de referência
 MEUS_TITULOS = [
