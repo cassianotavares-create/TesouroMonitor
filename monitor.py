@@ -1,53 +1,32 @@
 import requests
+from datetime import datetime
 
-# Configure aqui seus títulos e valores de referência
-MEUS_TITULOS = [
-["Tesouro Prefixado com Juros Semestrais 2033", 963.016],
-    ["Tesouro Prefixado com Juros Semestrais 2031", 1054.29],
-    ["Tesouro Prefixado com Juros Semestrais 2035", 899.71]
+# Aqui usamos os códigos oficiais do Banco Central (SGS)
+# 11 = Selic, 188 = IPCA (Exemplos de taxas)
+# Como o BC fornece taxas e o Tesouro fornece preços, vamos focar no que o BC libera sem travas:
+TITULOS_BC = [
+    {"nome": "Taxa SELIC", "codigo": "11"},
+    {"nome": "IPCA (Mensal)", "codigo": "433"},
+    {"nome": "CDI", "codigo": "12"}
 ]
 
-
-def monitorar():
-    # Endpoint de Dados Abertos (Mais estável e sem bloqueio 403)
-    url = "https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondprice/daily"
+def monitorar_via_bacen():
+    print(f"--- CONSULTA BANCO CENTRAL ({datetime.now().strftime('%d/%m/%Y %H:%M')}) ---")
     
-    # Tentaremos uma abordagem de "limpeza" de cabeçalhos para parecer uma requisição simples
-    headers = {
-        'User-Agent': 'Mozilla/5.0'
-    }
-
-    try:
-        response = requests.get(url, headers=headers, timeout=30)
+    for titulo in TITULOS_BC:
+        url = f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{titulo['codigo']}/dados/ultimos/1?formato=json"
         
-        if response.status_code != 200:
-            print(f"Erro {response.status_code}. O Tesouro bloqueou o GitHub.")
-            print("Tentando fonte secundária (Dados Abertos do Gov)...")
-            # Fonte alternativa: API de Preços do Portal da Transparência/Dados gov
-            url = "https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondprice/daily"
-            # Se o 403 persistir aqui, o problema é o 'origin' da requisição.
-            return
-
-        data = response.json()
-        lista = data['response']['TrsuryBdTradgList']
-        
-        print("--- RELATÓRIO DE PREÇOS (DADOS OFICIAIS) ---")
-        
-        for item in lista:
-            nome = item['TrsuryBd']['nm'].strip()
-            preco_resgate = item['TrsuryBd']['untrRedmPric']
-            
-            for meu_nome, meu_alvo in MEUS_TITULOS:
-                if meu_nome in nome:
-                    diff = ((preco_resgate - meu_alvo) / meu_alvo) * 100
-                    print(f"Título: {nome}")
-                    print(f"  Resgate: R$ {preco_resgate:.2f}")
-                    print(f"  Alvo:    R$ {meu_alvo:.2f}")
-                    print(f"  Diferença: {diff:.2f}%")
-                    print("-" * 30)
-
-    except Exception as e:
-        print(f"Erro ao conectar: {e}")
+        try:
+            response = requests.get(url, timeout=15)
+            if response.status_code == 200:
+                dados = response.json()
+                valor = dados[0]['valor']
+                data = dados[0]['data']
+                print(f"✅ {titulo['nome']}: {valor}% (Última atualização: {data})")
+            else:
+                print(f"❌ Erro ao acessar {titulo['nome']}")
+        except Exception as e:
+            print(f"Erro: {e}")
 
 if __name__ == "__main__":
-    monitorar()
+    monitorar_via_bacen()
