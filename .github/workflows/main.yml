@@ -19,7 +19,8 @@ jobs:
 
       - name: Instalar bibliotecas
         run: pip install requests
-        run: pip install pandas
+        
+      - run: pip install pandas
 
       - name: Rodar o monitor
         run: python monitor.py
